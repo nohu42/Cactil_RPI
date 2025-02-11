@@ -160,7 +160,7 @@ ssize_t ilps28qsw_read(struct file *f, char __user *u,
     goto _i2c_fail;
   }
 
-  ctrl_reg2.oneshot = 1;
+  ctrl_reg2.oneshot = 1; //Oneshot trigger
 
   ilps28qsw_write_reg(&ilps->i2c_handles, ILPS28QSW_CTRL_REG2, 
       (uint8_t *)&ctrl_reg2, 1);
