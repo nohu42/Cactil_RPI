@@ -143,7 +143,7 @@ ssize_t ilps28qsw_read(struct file *f, char __user *u,
   ilps28qsw_md_t md;
 
 
-  uint8_t slen;
+  uint8_t slen;//Len of the string extracted from the device
   char buf[100];
   int nb_try = ILPS28QSW_NB_TRY;
   int ret;
