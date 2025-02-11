@@ -714,10 +714,9 @@ int32_t ilps28qsw_data_get(const stmdev_ctx_t *ctx, ilps28qsw_md_t *md,
 
   /* pressure conversion */
   data->pressure.raw = (int32_t)buff[2];
-  data->pressure.raw = (data->pressure.raw * 256) + (int32_t) buff[1];
-  data->pressure.raw = (data->pressure.raw * 256) + (int32_t) buff[0];
-  data->pressure.raw = data->pressure.raw * 256;
-
+  data->pressure.raw = (data->pressure.raw << 8) + (int32_t) buff[1];
+  data->pressure.raw = (data->pressure.raw <<8) + (int32_t) buff[0];
+  data->pressure.raw <<= 8;
   if (md->interleaved_mode == 1U)
   {
     if ((buff[0] & 0x1U) == 0U){
@@ -736,7 +735,7 @@ int32_t ilps28qsw_data_get(const stmdev_ctx_t *ctx, ilps28qsw_md_t *md,
 
   /* temperature conversion */
   data->heat.raw = (int16_t)buff[4];
-  data->heat.raw = (data->heat.raw * 256) + (int16_t) buff[3];
+  data->heat.raw = (data->heat.raw <<8) + (int16_t) buff[3];
 
   return ret;
 }

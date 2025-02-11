@@ -17,7 +17,9 @@
 
 #define DEVICE_NAME 	("ilps28qsw"	)
 #define ILPS28QSW_ADDR 	(	0x5C	)
+#define ILPS28QSW_NB_TRY 5
 
+#define ILPS28QSW_SLEEP_TIMEOUT 10
 
 
 struct ilps28qsw_device{
@@ -131,11 +133,89 @@ ssize_t ilps28qsw_write(struct file *f, const char __user *u,
 
 }
 
+ssize_t ilps28qsw_read(struct file *f, char __user *u, 
+    size_t len, loff_t *){
+
+
+  ilps28qsw_ctrl_reg2_t ctrl_reg2;
+  ilps28qsw_all_sources_t all_sources;
+  ilps28qsw_data_t sensor_data;
+  ilps28qsw_md_t md;
+  uint8_t slen;
+  char buf[100];
+  int nb_try = ILPS28QSW_NB_TRY;
+  int ret;
+
+
+
+  struct ilps28qsw_device *ilps = (struct ilps28qsw_device *)f->private_data;
+
+
+  /*Reading sensor value*/
+  ret = ilps28qsw_mode_get(&ilps->i2c_handles, &md);
+  ret = ilps28qsw_read_reg(&ilps->i2c_handles, ILPS28QSW_CTRL_REG2, (uint8_t *)&ctrl_reg2,1);
+  if(ret < 0){
+    goto _i2c_fail;
+  }
+
+  ctrl_reg2.oneshot = 1;
+
+  ilps28qsw_write_reg(&ilps->i2c_handles, ILPS28QSW_CTRL_REG2, 
+      (uint8_t *)&ctrl_reg2, 1);
+  if(ret < 0){
+    goto _i2c_fail;
+  }
+
+
+  memset(&all_sources, 0, sizeof(ilps28qsw_all_sources_t));
+  while (nb_try > 0 && !(all_sources.drdy_pres && all_sources.drdy_temp)){
+
+    ret = ilps28qsw_all_sources_get(&ilps->i2c_handles, &all_sources);
+    if (ret < 0)
+
+      goto _i2c_fail;
+
+    msleep(ILPS28QSW_SLEEP_TIMEOUT);
+    nb_try--;
+  }
+
+  if(!nb_try)
+    goto _con_timeout;
+
+  ret = ilps28qsw_data_get(&ilps->i2c_handles, &md, &sensor_data);
+  if (ret<0)
+    goto _i2c_fail;
+
+  slen = sprintf(buf,"Presure: %d, Temp: %d\n", 
+      (uint32_t)(sensor_data.pressure.raw), (uint16_t)(sensor_data.heat.raw));
+
+  //if(len < slen)
+  //  goto _user_buf;
+
+  if ( copy_to_user(u, buf, slen) )
+      goto _user_buf;
+
+  pr_info("Driver file was read\n");
+  return slen;
+
+_user_buf:
+  pr_err( "Error, user buffer to small: %d\n", ret);
+  return -EIO;
+_i2c_fail:
+  pr_err( "Error communicating with device: %d\n", ret);
+  return ret;
+_con_timeout: 
+  pr_err("Device took to much time to answer\n");
+  return -EIO;
+
+}
+
 //Opperation structure to talk with de device with files
 static struct file_operations ilps28qsw_fops = {
   .owner =  THIS_MODULE,
   .open = ilps28qsw_open,
   .write = ilps28qsw_write,
+  .read = ilps28qsw_read,
 };
 
 
@@ -326,20 +406,20 @@ static int __init ilps28qsw_init(void){
     goto _add_driver;
   }
 
-  i2c_adapt_rpi = i2c_get_adapter(1);//Get the adapter named 1
-  if (i2c_adapt_rpi == NULL){
-    pr_err("Can't retrieve i2c adapter\n");
-    ret = PTR_ERR(i2c_adapt_rpi);
-    goto exit;
-  }
+  //i2c_adapt_rpi = i2c_get_adapter(1);//Get the adapter named 1
+  //if (i2c_adapt_rpi == NULL){
+  //  pr_err("Can't retrieve i2c adapter\n");
+  //  ret = PTR_ERR(i2c_adapt_rpi);
+  //  goto exit;
+  //}
 
-  i2c_client_ilps28qsw = i2c_new_client_device(i2c_adapt_rpi, 
-      &pressure_i2c_board_info);
-  if (i2c_client_ilps28qsw == NULL){
-    pr_err("Can't creat new i2c_client\n");
-    ret = PTR_ERR(i2c_client_ilps28qsw);
-    goto exit;
-  }
+  //i2c_client_ilps28qsw = i2c_new_client_device(i2c_adapt_rpi, 
+  //    &pressure_i2c_board_info);
+  //if (i2c_client_ilps28qsw == NULL){
+  //  pr_err("Can't creat new i2c_client\n");
+  //  ret = PTR_ERR(i2c_client_ilps28qsw);
+  //  goto exit;
+  //}
 
 	pr_info("Init of the driver is complete\n");
 	goto exit;
