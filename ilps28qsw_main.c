@@ -136,11 +136,13 @@ ssize_t ilps28qsw_write(struct file *f, const char __user *u,
 ssize_t ilps28qsw_read(struct file *f, char __user *u, 
     size_t len, loff_t *){
 
-
-  ilps28qsw_ctrl_reg2_t ctrl_reg2;
-  ilps28qsw_all_sources_t all_sources;
-  ilps28qsw_data_t sensor_data;
+  /*Variable registre pour la demande et la récupération de la data*/
+  ilps28qsw_ctrl_reg2_t ctrl_reg2;//Demandé une nouvelle data (soft trigger)
+  ilps28qsw_all_sources_t all_sources;//Savoir si la data est disponible
+  ilps28qsw_data_t sensor_data;//Récupérer la data
   ilps28qsw_md_t md;
+
+
   uint8_t slen;
   char buf[100];
   int nb_try = ILPS28QSW_NB_TRY;
