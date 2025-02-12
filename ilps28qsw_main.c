@@ -35,9 +35,11 @@ static ssize_t pres_scale_show(struct device *dev, struct device_attribute *attr
 	return 0;
 }
 static ssize_t scale_mode_show(struct device *dev, struct device_attribute *attr, char *buff){
-	return EOF;
+	return 0;
 }
-
+static ssize_t scale_mode_store(struct device *dev, struct device_attribute *attr, const char *buff, size_t count){
+	return count;
+}
 
 
 
@@ -56,21 +58,21 @@ static ssize_t pres_reading_show(struct device *dev, struct device_attribute *at
 	struct stmdev_ctx_t *ilps;
 
 	//Get the device data embedded in the device
-	dev_get_drvdata(dev, ilps);
+	ilps = dev_get_drvdata(dev);
 	
 	if(dev == NULL){
 		dev_err(dev, "Something went wrong...");
 		return -EIO;
 	}
 	/*Reading sensor value*/
-	ret = ilps28qsw_mode_get(&ilps->i2c_handles, &md);
-	ret = ilps28qsw_read_reg(&ilps->i2c_handles, ILPS28QSW_CTRL_REG2, (uint8_t *)&ctrl_reg2,1);
+	ret = ilps28qsw_mode_get(&ilps, &md);
+	ret = ilps28qsw_read_reg(&ilps, ILPS28QSW_CTRL_REG2, (uint8_t *)&ctrl_reg2,1);
 	if(ret < 0){
 		goto _i2c_fail;
 	}
 
 	ctrl_reg2.oneshot = 1; //Oneshot trigger
-	ilps28qsw_write_reg(&ilps->i2c_handles, ILPS28QSW_CTRL_REG2,
+	ilps28qsw_write_reg(&ilps, ILPS28QSW_CTRL_REG2,
 	  (uint8_t *)&ctrl_reg2, 1);
 	if(ret < 0){
 		goto _i2c_fail;
@@ -79,7 +81,7 @@ static ssize_t pres_reading_show(struct device *dev, struct device_attribute *at
 
 	memset(&all_sources, 0, sizeof(ilps28qsw_all_sources_t));
 	while (nb_try > 0 && !(all_sources.drdy_pres)){
-		ret = ilps28qsw_all_sources_get(&ilps->i2c_handles, &all_sources);
+		ret = ilps28qsw_all_sources_get(&ilps, &all_sources);
 		if (ret < 0)
 		  goto _i2c_fail;
 		msleep(ILPS28QSW_SLEEP_TIMEOUT);
@@ -89,16 +91,15 @@ static ssize_t pres_reading_show(struct device *dev, struct device_attribute *at
 	if(!nb_try)
 		goto _con_timeout;
 
-	ret = ilps28qsw_data_get(&ilps->i2c_handles, &md, &sensor_data);
+	ret = ilps28qsw_data_get(&ilps, &md, &sensor_data);
 	if (ret<0)
 		goto _i2c_fail;
 
 	slen = sprintf(buf,"Presure: %d", (uint32_t)(sensor_data.pressure.raw));
-	buf[slen+1] = EOF;
-	return slen+1;
+	return slen;
 
 	_i2c_fail:
-	pr_err( "Error communicating with device: %d\n", ret);
+	pr_err( "Error communicating with device: %ld\n", ret);
 	return ret;
 	_con_timeout:
 	pr_err("Device took to much time to answer\n");
