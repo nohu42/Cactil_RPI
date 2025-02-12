@@ -25,7 +25,6 @@
 struct ilps28qsw_device{
 	stmdev_ctx_t i2c_handles;
 	struct list_head list_entry;
-	dev_t i_dev;
 };
 
 /*Global variable for driver:*/ 
@@ -97,127 +96,6 @@ int ilps28qsw_plateform_write(void *handle,
 }
 
 
-int ilps28qsw_open(struct inode *in, struct file *f){
-  
-  int ret = -ENXIO; 
-  struct ilps28qsw_device *ilps;
-  list_for_each_entry(ilps, &device_list, list_entry){
-    if(ilps->i_dev == in->i_cdev->dev)
-    {
-      ret = 0;
-      break;
-    }
-  }
-  if(ret){
-    pr_warn("ilps28qsw: No device matched %d\n", MAJOR(in->i_cdev->dev));
-    goto _not_found;
-  }
-  
-  //Store a pointer to device struct for other methods:
-  f->private_data = ilps;
-
-  pr_info("ilps28qsw: Driver file was opened\n");
-
-_not_found:
-  return ret;
-
-
-}
-ssize_t ilps28qsw_write(struct file *f, const char __user *u, 
-                        size_t len, loff_t *){
-
-  pr_info("Driver file was written\n");
-  return len;
-
-}
-
-ssize_t ilps28qsw_read(struct file *f, char __user *u, 
-    size_t len, loff_t *){
-
-  /*Variable registre pour la demande et la récupération de la data*/
-  ilps28qsw_ctrl_reg2_t ctrl_reg2;//Demandé une nouvelle data (soft trigger)
-  ilps28qsw_all_sources_t all_sources;//Savoir si la data est disponible
-  ilps28qsw_data_t sensor_data;//Récupérer la data
-  ilps28qsw_md_t md;
-
-
-  uint8_t slen;//Len of the string extracted from the device
-  char buf[100];
-  int nb_try = ILPS28QSW_NB_TRY;
-  int ret;
-
-
-
-  struct ilps28qsw_device *ilps = (struct ilps28qsw_device *)f->private_data;
-
-
-  /*Reading sensor value*/
-  ret = ilps28qsw_mode_get(&ilps->i2c_handles, &md);
-  ret = ilps28qsw_read_reg(&ilps->i2c_handles, ILPS28QSW_CTRL_REG2, (uint8_t *)&ctrl_reg2,1);
-  if(ret < 0){
-    goto _i2c_fail;
-  }
-
-  ctrl_reg2.oneshot = 1; //Oneshot trigger
-
-  ilps28qsw_write_reg(&ilps->i2c_handles, ILPS28QSW_CTRL_REG2, 
-      (uint8_t *)&ctrl_reg2, 1);
-  if(ret < 0){
-    goto _i2c_fail;
-  }
-
-
-  memset(&all_sources, 0, sizeof(ilps28qsw_all_sources_t));
-  while (nb_try > 0 && !(all_sources.drdy_pres && all_sources.drdy_temp)){
-
-    ret = ilps28qsw_all_sources_get(&ilps->i2c_handles, &all_sources);
-    if (ret < 0)
-
-      goto _i2c_fail;
-
-    msleep(ILPS28QSW_SLEEP_TIMEOUT);
-    nb_try--;
-  }
-
-  if(!nb_try)
-    goto _con_timeout;
-
-  ret = ilps28qsw_data_get(&ilps->i2c_handles, &md, &sensor_data);
-  if (ret<0)
-    goto _i2c_fail;
-
-  slen = sprintf(buf,"Presure: %d, Temp: %d\n", 
-      (uint32_t)(sensor_data.pressure.raw), (uint16_t)(sensor_data.heat.raw));
-
-  //if(len < slen)
-  //  goto _user_buf;
-
-  if ( copy_to_user(u, buf, slen) )
-      goto _user_buf;
-
-  pr_info("Driver file was read\n");
-  return slen;
-
-_user_buf:
-  pr_err( "Error, user buffer to small: %d\n", ret);
-  return -EIO;
-_i2c_fail:
-  pr_err( "Error communicating with device: %d\n", ret);
-  return ret;
-_con_timeout: 
-  pr_err("Device took to much time to answer\n");
-  return -EIO;
-
-}
-
-//Opperation structure to talk with de device with files
-static struct file_operations ilps28qsw_fops = {
-  .owner =  THIS_MODULE,
-  .open = ilps28qsw_open,
-  .write = ilps28qsw_write,
-  .read = ilps28qsw_read,
-};
-
 
 // Probe function, add a device to the driver if compatible
 static int ilps28qsw_probe(struct i2c_client *client){
@@ -259,8 +137,7 @@ static int ilps28qsw_probe(struct i2c_client *client){
   new_ilps->i2c_handles.read_reg = ilps28qsw_plateform_read;
   new_ilps->i2c_handles.mdelay= msleep;
   new_ilps->i2c_handles.handle =  client;
-  new_ilps->i_dev=  curr_dev;//dev number for device identification
-  
+
   //link list for multiple devices support:
   INIT_LIST_HEAD(&new_ilps->list_entry);//Initialise the list 
   list_add_tail(&new_ilps->list_entry, &device_list);// Add device to list
