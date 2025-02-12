@@ -41,7 +41,7 @@ static ssize_t PRES_READING_ATTR_store(struct device *dev, struct device_attribu
 	return 0;
 }
 //SysFs Attributes static declaration
-const struct device_attribute pres_reading = DEVICE_ATTR(PRES_READING_ATTR_NAME, 0660, PRES_READING_ATTR_show, PRES_READING_ATTR_store);
+DEVICE_ATTR(PRES_READING_ATTR_NAME, 0660, PRES_READING_ATTR_show, PRES_READING_ATTR_store);
 
 
 //Creat List for keeping tracks of devices
@@ -210,7 +210,7 @@ _ilps_device_alloc:
 static void ilps28qsw_remove(struct i2c_client *client){
 	struct ilps28qsw_device *ilps = i2c_get_clientdata(client);
 	list_del(&ilps->list_entry);
-	device_remove_file(&client->dev, &press_reading);
+	device_remove_file(&client->dev, &pres_reading);
 	kfree(ilps);
 	pr_info("ilps28qsw: Driver removed a client\n");
 }
