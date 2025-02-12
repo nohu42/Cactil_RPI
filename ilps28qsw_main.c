@@ -23,28 +23,99 @@
 
 
 
-struct ilps28qsw_device{
-	stmdev_ctx_t i2c_handles;
-	struct list_head list_entry;
-};
+stmdev_ctx_t i2c_handles;
+
+static ssize_t temp_reading_show(struct device *dev, struct device_attribute *attr, char *buff){
+	return 0;
+}
+static ssize_t temp_scale_show(struct device *dev, struct device_attribute *attr, char *buff){
+	return 0;
+}
+static ssize_t pres_scale_show(struct device *dev, struct device_attribute *attr, char *buff){
+	return 0;
+}
+static ssize_t scale_mode_show(struct device *dev, struct device_attribute *attr, char *buff){
+	return EOF;
+}
+
+
+
 
 static ssize_t pres_reading_show(struct device *dev, struct device_attribute *attr, char *buff){
 	
+	ssize_t ret;//Variable pour return
+	int nb_try = ILPS28QSW_NB_TRY;
+	
+	/*Variable registre pour la demande et la récupération de la data*/
+	ilps28qsw_ctrl_reg2_t ctrl_reg2;//Demandé une nouvelle data (soft trigger)
+	ilps28qsw_all_sources_t all_sources;//Savoir si la data est disponible
+	ilps28qsw_data_t sensor_data;//Récupérer la data
+	ilps28qsw_md_t md;
+	
+	/*sensor device data*/
+	struct stmdev_ctx_t *ilps;
+
+	//Get the device data embedded in the device
+	dev_get_drvdata(dev, ilps);
+	
+	if(dev == NULL){
+		dev_err(dev, "Something went wrong...");
+		return -EIO;
+	}
+	/*Reading sensor value*/
+	ret = ilps28qsw_mode_get(&ilps->i2c_handles, &md);
+	ret = ilps28qsw_read_reg(&ilps->i2c_handles, ILPS28QSW_CTRL_REG2, (uint8_t *)&ctrl_reg2,1);
+	if(ret < 0){
+		goto _i2c_fail;
+	}
+
+	ctrl_reg2.oneshot = 1; //Oneshot trigger
+	ilps28qsw_write_reg(&ilps->i2c_handles, ILPS28QSW_CTRL_REG2,
+	  (uint8_t *)&ctrl_reg2, 1);
+	if(ret < 0){
+		goto _i2c_fail;
+	}
+
+
+	memset(&all_sources, 0, sizeof(ilps28qsw_all_sources_t));
+	while (nb_try > 0 && !(all_sources.drdy_pres)){
+		ret = ilps28qsw_all_sources_get(&ilps->i2c_handles, &all_sources);
+		if (ret < 0)
+		  goto _i2c_fail;
+		msleep(ILPS28QSW_SLEEP_TIMEOUT);
+		nb_try--;
+	}
+
+	if(!nb_try)
+		goto _con_timeout;
+
+	ret = ilps28qsw_data_get(&ilps->i2c_handles, &md, &sensor_data);
+	if (ret<0)
+		goto _i2c_fail;
+
+	slen = sprintf(buf,"Presure: %d", (uint32_t)(sensor_data.pressure.raw));
+	buf[slen+1] = EOF;
+	return slen+1;
+
+	_i2c_fail:
+	pr_err( "Error communicating with device: %d\n", ret);
+	return ret;
+	_con_timeout:
+	pr_err("Device took to much time to answer\n");
+	return -EIO;
+
+	//Retrieve the data:
+
 	pr_info("Reading the attribute\n");
 	return 0;
 }
 
-static ssize_t pres_reading_store(struct device *dev, struct device_attribute *attr, const char *buff, size_t count){
-	
-	pr_info("Writing the attribute\n");
-	return count;
-}
 //SysFs Attributes static declaration
-DEVICE_ATTR(pres_reading, 0660, pres_reading_show, pres_reading_store);
-
-
-//Creat List for keeping tracks of devices
-LIST_HEAD(device_list);
+DEVICE_ATTR_RO(pres_reading);
+DEVICE_ATTR_RO(temp_scale);
+DEVICE_ATTR_RO(pres_scale);
+DEVICE_ATTR_RO(temp_reading);
+DEVICE_ATTR_RW(scale_mode);
 
 //plateform read (used by µC driver)
 int ilps28qsw_plateform_read( void *handle, 
@@ -107,7 +178,7 @@ int ilps28qsw_plateform_write(void *handle,
 static int ilps28qsw_probe(struct i2c_client *client){
 	
 	int ret = 0;
-	struct ilps28qsw_device *new_ilps;
+	struct stmdev_ctx_t *new_ilps;
 	pr_info("ilps28qsw: Driver probing a new client\n");
 
 
@@ -135,7 +206,27 @@ static int ilps28qsw_probe(struct i2c_client *client){
 		dev_err(&client->dev, "Can't creat device files: %d", ret);
 		return ret; 
 	}
-	
+	//Creating device sysfs attributes files:
+	ret = device_create_file(&client->dev, &dev_attr_temp_reading);
+	if(ret < 0){
+		dev_err(&client->dev, "Can't creat device files: %d", ret);
+		return ret; 
+	}	//Creating device sysfs attributes files:
+	ret = device_create_file(&client->dev, &dev_attr_scale_mode);
+	if(ret < 0){
+		dev_err(&client->dev, "Can't creat device files: %d", ret);
+		return ret; 
+	}	//Creating device sysfs attributes files:
+	ret = device_create_file(&client->dev, &dev_attr_temp_scale);
+	if(ret < 0){
+		dev_err(&client->dev, "Can't creat device files: %d", ret);
+		return ret; 
+	}	//Creating device sysfs attributes files:
+	ret = device_create_file(&client->dev, &dev_attr_pres_scale);
+	if(ret < 0){
+		dev_err(&client->dev, "Can't creat device files: %d", ret);
+		return ret; 
+	}	
 	//Allocate data for the driver:
 	new_ilps = kzalloc(sizeof(*new_ilps), GFP_KERNEL);
 	if(IS_ERR(new_ilps)){
@@ -144,43 +235,39 @@ static int ilps28qsw_probe(struct i2c_client *client){
 	}
 
 	//Populate the rest of the device structure:
-	new_ilps->i2c_handles.write_reg = ilps28qsw_plateform_write;
-	new_ilps->i2c_handles.read_reg = ilps28qsw_plateform_read;
-	new_ilps->i2c_handles.mdelay= msleep;
-	new_ilps->i2c_handles.handle =  client;
-
-	//link list for multiple devices support:
-	INIT_LIST_HEAD(&new_ilps->list_entry);//Initialise the list 
-	list_add_tail(&new_ilps->list_entry, &device_list);// Add device to list
+	new_ilps.write_reg = ilps28qsw_plateform_write;
+	new_ilps.read_reg = ilps28qsw_plateform_read;
+	new_ilps.mdelay= msleep;
+	new_ilps.handle =  client;
 
 	//Pass driver data to the client
 	i2c_set_clientdata(client, new_ilps);
 
 	//Init new device
 	/* Restore default configuration */
-	ilps28qsw_init_set(&new_ilps->i2c_handles, ILPS28QSW_RESET);
+	ilps28qsw_init_set(&new_ilps, ILPS28QSW_RESET);
 	do {///TODO This can block forever, add count down
 		msleep(100);
-		ilps28qsw_status_get(&new_ilps->i2c_handles, &status);
+		ilps28qsw_status_get(&new_ilps, &status);
 	} while (status.sw_reset);
 	pr_info("ilps28qsw: Sensor RESET -> OK\n");
 
 	/* Disable AH/QVAR to save power consumption */
-	ret = ilps28qsw_ah_qvar_en_set(&new_ilps->i2c_handles, 0);
+	ret = ilps28qsw_ah_qvar_en_set(&new_ilps, 0);
 	if (ret< 0){
 		goto _init_fail;
 	}
 	pr_info("ilps28qsw: Qvar Deactivated\n");
 
 	/* Set bdu and if_inc recommended for driver usage */
-	ret = ilps28qsw_init_set(&new_ilps->i2c_handles, ILPS28QSW_DRV_RDY);
+	ret = ilps28qsw_init_set(&new_ilps, ILPS28QSW_DRV_RDY);
 	if (ret<0){
 		goto _init_fail;
 	}
 
 	/* Select bus interface */
 	bus_mode.filter = ILPS28QSW_AUTO;
-	ret = ilps28qsw_bus_mode_set(&new_ilps->i2c_handles, &bus_mode);
+	ret = ilps28qsw_bus_mode_set(&new_ilps, &bus_mode);
 	if (ret<0)
 		goto _init_fail;
 
@@ -189,7 +276,7 @@ static int ilps28qsw_probe(struct i2c_client *client){
 	md.avg = ILPS28QSW_128_AVG;
 	md.lpf = ILPS28QSW_LPF_ODR_DIV_4;
 	md.fs = ILPS28QSW_4060hPa;
-	ret = ilps28qsw_mode_set(&new_ilps->i2c_handles, &md);
+	ret = ilps28qsw_mode_set(&new_ilps, &md);
 	if (ret<0)
 		goto _init_fail;
   
@@ -207,9 +294,15 @@ _ilps_device_alloc:
 }
 
 static void ilps28qsw_remove(struct i2c_client *client){
+	
 	struct ilps28qsw_device *ilps = i2c_get_clientdata(client);
-	list_del(&ilps->list_entry);
+
 	device_remove_file(&client->dev, &dev_attr_pres_reading);
+	device_remove_file(&client->dev, &dev_attr_temp_reading);
+	device_remove_file(&client->dev, &dev_attr_pres_scale);
+	device_remove_file(&client->dev, &dev_attr_temp_scale);
+	device_remove_file(&client->dev, &dev_attr_mode_scale);
+
 	kfree(ilps);
 	pr_info("ilps28qsw: Driver removed a client\n");
 }
