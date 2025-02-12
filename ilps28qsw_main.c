@@ -55,7 +55,7 @@ static ssize_t pres_reading_show(struct device *dev, struct device_attribute *at
 	ilps28qsw_md_t md;
 	
 	/*sensor device data*/
-	struct stmdev_ctx_t *ilps;
+	stmdev_ctx_t *ilps;
 
 	//Get the device data embedded in the device
 	ilps = dev_get_drvdata(dev);
@@ -179,7 +179,7 @@ int ilps28qsw_plateform_write(void *handle,
 static int ilps28qsw_probe(struct i2c_client *client){
 	
 	int ret = 0;
-	struct stmdev_ctx_t *new_ilps;
+	stmdev_ctx_t *new_ilps;
 	pr_info("ilps28qsw: Driver probing a new client\n");
 
 
