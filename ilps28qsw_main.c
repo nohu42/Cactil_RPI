@@ -21,20 +21,27 @@
 
 #define ILPS28QSW_SLEEP_TIMEOUT 10
 
+#define PRES_READING_ATTR pressure_reading
+#define PRES_READING_ATTR_NAME "PRES_READING_ATTR"
 
 struct ilps28qsw_device{
 	stmdev_ctx_t i2c_handles;
 	struct list_head list_entry;
 };
 
-/*Global variable for driver:*/ 
-static uint8_t nb_devices_probed = 0;//Number of devices probed by the driver
-                                     //to avoid getting the same minor nb
-static dev_t dev_first_nb;//First dev number to add from (MINOR/MAJOR on /dev)
+static ssize_t PRES_READING_ATTR_show(struct device *dev, struct device_attribute *attr, char *buff){
+	
+	pr_info("Reading the attribute\n");
+	return 0;
+}
 
-//This structure is only needed because this driver manualy add the device on
-//the i2c bus (adapter).
-static struct i2c_adapter *i2c_adapt_rpi = NULL;
+static ssize_t PRES_READING_ATTR_store(struct device *dev, struct device_attribute *attr, char *buff, size_t count){
+	
+	pr_info("Writing the attribute\n");
+	return 0;
+}
+//SysFs Attributes static declaration
+const struct device_attribute pres_reading = DEVICE_ATTR(PRES_READING_ATTR_NAME, 0660, PRES_READING_ATTR_show, PRES_READING_ATTR_store);
 
 
 //Creat List for keeping tracks of devices
@@ -106,44 +113,49 @@ static int ilps28qsw_probe(struct i2c_client *client){
 
 
 	/*Variables for register modification*/
-    ilps28qsw_bus_mode_t bus_mode;
-    ilps28qsw_stat_t status;
-    ilps28qsw_md_t md;
-  
-    //Check functionnality of the adaptor
+	ilps28qsw_bus_mode_t bus_mode;
+	ilps28qsw_stat_t status;
+	ilps28qsw_md_t md;
+
+	//Check functionnality of the adaptor
 	if(!i2c_check_functionality(client->adapter, I2C_FUNC_SMBUS_I2C_BLOCK))
 		return -EIO;
 	if(!i2c_check_functionality(client->adapter, I2C_FUNC_SMBUS_BYTE_DATA))
 		return -EIO;
 	dev_info(&(client->dev), "The adapteur support the right functions \n" );
-  
+
 	//Read family id; if this fail, it's not the rigtht device
 	ret = i2c_smbus_read_byte_data(client, ILPS28QSW_WHO_AM_I);
 	if (ret != ILPS28QSW_ID)
 		return (ret < 0)? ret : -ENODEV;
 	dev_info(&(client->dev), "Device appears to be supported --> probing \n" );
 
+	//Creating device sysfs attributes files:
+	ret = device_create_file(&client->dev, pres_reading);
+	if(ret < 0){
+		dev_err(&client->dev, "Can't creat device files: %d", ret);
+		return ret; 
+	}
+	
 	//Allocate data for the driver:
 	new_ilps = kzalloc(sizeof(*new_ilps), GFP_KERNEL);
 	if(IS_ERR(new_ilps)){
 		pr_err("ilps28qsw: Can't allocate data for device");
 		goto _ilps_device_alloc;
 	}
-	
-	nb_devices_probed++;
 
-  //Populate the rest of the device structure:
-  new_ilps->i2c_handles.write_reg = ilps28qsw_plateform_write;
-  new_ilps->i2c_handles.read_reg = ilps28qsw_plateform_read;
-  new_ilps->i2c_handles.mdelay= msleep;
-  new_ilps->i2c_handles.handle =  client;
+	//Populate the rest of the device structure:
+	new_ilps->i2c_handles.write_reg = ilps28qsw_plateform_write;
+	new_ilps->i2c_handles.read_reg = ilps28qsw_plateform_read;
+	new_ilps->i2c_handles.mdelay= msleep;
+	new_ilps->i2c_handles.handle =  client;
 
-  //link list for multiple devices support:
-  INIT_LIST_HEAD(&new_ilps->list_entry);//Initialise the list 
-  list_add_tail(&new_ilps->list_entry, &device_list);// Add device to list
+	//link list for multiple devices support:
+	INIT_LIST_HEAD(&new_ilps->list_entry);//Initialise the list 
+	list_add_tail(&new_ilps->list_entry, &device_list);// Add device to list
 
-  //Pass driver data to the client
-  i2c_set_clientdata(client, new_ilps);
+	//Pass driver data to the client
+	i2c_set_clientdata(client, new_ilps);
 
 	//Init new device
 	/* Restore default configuration */
@@ -189,14 +201,16 @@ static int ilps28qsw_probe(struct i2c_client *client){
   //Error handling 
 _init_fail:
   pr_err("ilps28qsw: device init failed\n");
-_ilps_device_alloc:
   kfree(new_ilps);
+_ilps_device_alloc:
+
   return ret;
 }
 
 static void ilps28qsw_remove(struct i2c_client *client){
 	struct ilps28qsw_device *ilps = i2c_get_clientdata(client);
 	list_del(&ilps->list_entry);
+	device_remove_file(&client->dev, pressure_reading);
 	kfree(ilps);
 	pr_info("ilps28qsw: Driver removed a client\n");
 }
