@@ -21,27 +21,26 @@
 
 #define ILPS28QSW_SLEEP_TIMEOUT 10
 
-#define PRES_READING_ATTR pressure_reading
-#define PRES_READING_ATTR_NAME "PRES_READING_ATTR"
+
 
 struct ilps28qsw_device{
 	stmdev_ctx_t i2c_handles;
 	struct list_head list_entry;
 };
 
-static ssize_t PRES_READING_ATTR_show(struct device *dev, struct device_attribute *attr, char *buff){
+static ssize_t pres_reading_show(struct device *dev, struct device_attribute *attr, char *buff){
 	
 	pr_info("Reading the attribute\n");
 	return 0;
 }
 
-static ssize_t PRES_READING_ATTR_store(struct device *dev, struct device_attribute *attr, char *buff, size_t count){
+static ssize_t pres_reading_store(struct device *dev, struct device_attribute *attr, char *buff, size_t count){
 	
 	pr_info("Writing the attribute\n");
 	return 0;
 }
 //SysFs Attributes static declaration
-DEVICE_ATTR(PRES_READING_ATTR_NAME, 0660, PRES_READING_ATTR_show, PRES_READING_ATTR_store);
+DEVICE_ATTR(pres_reading, 0660, pres_reading_show, pres_reading_store);
 
 
 //Creat List for keeping tracks of devices
@@ -131,7 +130,7 @@ static int ilps28qsw_probe(struct i2c_client *client){
 	dev_info(&(client->dev), "Device appears to be supported --> probing \n" );
 
 	//Creating device sysfs attributes files:
-	ret = device_create_file(&client->dev, &PRES_READING_ATTR);
+	ret = device_create_file(&client->dev, &dev_attr_pres_reading);
 	if(ret < 0){
 		dev_err(&client->dev, "Can't creat device files: %d", ret);
 		return ret; 
@@ -210,7 +209,7 @@ _ilps_device_alloc:
 static void ilps28qsw_remove(struct i2c_client *client){
 	struct ilps28qsw_device *ilps = i2c_get_clientdata(client);
 	list_del(&ilps->list_entry);
-	device_remove_file(&client->dev, &dev_attr_PRES_READING_ATTR);
+	device_remove_file(&client->dev, &dev_attr_pres_reading);
 	kfree(ilps);
 	pr_info("ilps28qsw: Driver removed a client\n");
 }
