@@ -233,10 +233,6 @@ static struct i2c_driver ilps28qsw_i2c_driver = {
 	.id_table = ilps28qsw_id,	
 };
 
-static struct i2c_board_info pressure_i2c_board_info = {
-        I2C_BOARD_INFO(DEVICE_NAME, ILPS28QSW_ADDR)
-    };
-
 static int __init ilps28qsw_init(void){
 
   int ret;
