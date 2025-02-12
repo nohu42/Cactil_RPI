@@ -37,7 +37,7 @@ static ssize_t pres_reading_show(struct device *dev, struct device_attribute *at
 static ssize_t pres_reading_store(struct device *dev, struct device_attribute *attr, const char *buff, size_t count){
 	
 	pr_info("Writing the attribute\n");
-	return 0;
+	return count;
 }
 //SysFs Attributes static declaration
 DEVICE_ATTR(pres_reading, 0660, pres_reading_show, pres_reading_store);
