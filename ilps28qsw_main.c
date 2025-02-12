@@ -65,14 +65,14 @@ static ssize_t pres_reading_show(struct device *dev, struct device_attribute *at
 		return -EIO;
 	}
 	/*Reading sensor value*/
-	ret = ilps28qsw_mode_get(&ilps, &md);
-	ret = ilps28qsw_read_reg(&ilps, ILPS28QSW_CTRL_REG2, (uint8_t *)&ctrl_reg2,1);
+	ret = ilps28qsw_mode_get(ilps, &md);
+	ret = ilps28qsw_read_reg(ilps, ILPS28QSW_CTRL_REG2, (uint8_t *)&ctrl_reg2,1);
 	if(ret < 0){
 		goto _i2c_fail;
 	}
 
 	ctrl_reg2.oneshot = 1; //Oneshot trigger
-	ilps28qsw_write_reg(&ilps, ILPS28QSW_CTRL_REG2,
+	ilps28qsw_write_reg(ilps, ILPS28QSW_CTRL_REG2,
 	  (uint8_t *)&ctrl_reg2, 1);
 	if(ret < 0){
 		goto _i2c_fail;
@@ -81,7 +81,7 @@ static ssize_t pres_reading_show(struct device *dev, struct device_attribute *at
 
 	memset(&all_sources, 0, sizeof(ilps28qsw_all_sources_t));
 	while (nb_try > 0 && !(all_sources.drdy_pres)){
-		ret = ilps28qsw_all_sources_get(&ilps, &all_sources);
+		ret = ilps28qsw_all_sources_get(ilps, &all_sources);
 		if (ret < 0)
 		  goto _i2c_fail;
 		msleep(ILPS28QSW_SLEEP_TIMEOUT);
@@ -91,12 +91,12 @@ static ssize_t pres_reading_show(struct device *dev, struct device_attribute *at
 	if(!nb_try)
 		goto _con_timeout;
 
-	ret = ilps28qsw_data_get(&ilps, &md, &sensor_data);
+	ret = ilps28qsw_data_get(ilps, &md, &sensor_data);
 	if (ret<0)
 		goto _i2c_fail;
 
-	slen = sprintf(buf,"Presure: %d", (uint32_t)(sensor_data.pressure.raw));
-	return slen;
+	ret = sprintf(buff,"Presure: %d", (uint32_t)(sensor_data.pressure.raw));
+	return ret;
 
 	_i2c_fail:
 	pr_err( "Error communicating with device: %ld\n", ret);
@@ -229,46 +229,46 @@ static int ilps28qsw_probe(struct i2c_client *client){
 		return ret; 
 	}	
 	//Allocate data for the driver:
-	new_ilps = kzalloc(sizeof(*new_ilps), GFP_KERNEL);
+	new_ilps = kzalloc(sizeof(stmdev_ctx_t), GFP_KERNEL);
 	if(IS_ERR(new_ilps)){
 		pr_err("ilps28qsw: Can't allocate data for device");
 		goto _ilps_device_alloc;
 	}
 
 	//Populate the rest of the device structure:
-	new_ilps.write_reg = ilps28qsw_plateform_write;
-	new_ilps.read_reg = ilps28qsw_plateform_read;
-	new_ilps.mdelay= msleep;
-	new_ilps.handle =  client;
+	new_ilps_>write_reg = ilps28qsw_plateform_write;
+	new_ilps->read_reg = ilps28qsw_plateform_read;
+	new_ilps->mdelay= msleep;
+	new_ilps->handle =  client;
 
 	//Pass driver data to the client
 	i2c_set_clientdata(client, new_ilps);
 
 	//Init new device
 	/* Restore default configuration */
-	ilps28qsw_init_set(&new_ilps, ILPS28QSW_RESET);
+	ilps28qsw_init_set(new_ilps, ILPS28QSW_RESET);
 	do {///TODO This can block forever, add count down
 		msleep(100);
-		ilps28qsw_status_get(&new_ilps, &status);
+		ilps28qsw_status_get(new_ilps, &status);
 	} while (status.sw_reset);
 	pr_info("ilps28qsw: Sensor RESET -> OK\n");
 
 	/* Disable AH/QVAR to save power consumption */
-	ret = ilps28qsw_ah_qvar_en_set(&new_ilps, 0);
+	ret = ilps28qsw_ah_qvar_en_set(new_ilps, 0);
 	if (ret< 0){
 		goto _init_fail;
 	}
 	pr_info("ilps28qsw: Qvar Deactivated\n");
 
 	/* Set bdu and if_inc recommended for driver usage */
-	ret = ilps28qsw_init_set(&new_ilps, ILPS28QSW_DRV_RDY);
+	ret = ilps28qsw_init_set(new_ilps, ILPS28QSW_DRV_RDY);
 	if (ret<0){
 		goto _init_fail;
 	}
 
 	/* Select bus interface */
 	bus_mode.filter = ILPS28QSW_AUTO;
-	ret = ilps28qsw_bus_mode_set(&new_ilps, &bus_mode);
+	ret = ilps28qsw_bus_mode_set(new_ilps, &bus_mode);
 	if (ret<0)
 		goto _init_fail;
 
@@ -277,7 +277,7 @@ static int ilps28qsw_probe(struct i2c_client *client){
 	md.avg = ILPS28QSW_128_AVG;
 	md.lpf = ILPS28QSW_LPF_ODR_DIV_4;
 	md.fs = ILPS28QSW_4060hPa;
-	ret = ilps28qsw_mode_set(&new_ilps, &md);
+	ret = ilps28qsw_mode_set(new_ilps, &md);
 	if (ret<0)
 		goto _init_fail;
   
@@ -302,7 +302,7 @@ static void ilps28qsw_remove(struct i2c_client *client){
 	device_remove_file(&client->dev, &dev_attr_temp_reading);
 	device_remove_file(&client->dev, &dev_attr_pres_scale);
 	device_remove_file(&client->dev, &dev_attr_temp_scale);
-	device_remove_file(&client->dev, &dev_attr_mode_scale);
+	device_remove_file(&client->dev, &dev_attr_scale_mode);
 
 	kfree(ilps);
 	pr_info("ilps28qsw: Driver removed a client\n");
