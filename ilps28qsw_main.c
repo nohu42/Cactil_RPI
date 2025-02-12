@@ -407,22 +407,7 @@ static int __init ilps28qsw_init(void){
     pr_err("Fail adding driver on system\n");
     goto _add_driver;
   }
-
-  //i2c_adapt_rpi = i2c_get_adapter(1);//Get the adapter named 1
-  //if (i2c_adapt_rpi == NULL){
-  //  pr_err("Can't retrieve i2c adapter\n");
-  //  ret = PTR_ERR(i2c_adapt_rpi);
-  //  goto exit;
-  //}
-
-  //i2c_client_ilps28qsw = i2c_new_client_device(i2c_adapt_rpi, 
-  //    &pressure_i2c_board_info);
-  //if (i2c_client_ilps28qsw == NULL){
-  //  pr_err("Can't creat new i2c_client\n");
-  //  ret = PTR_ERR(i2c_client_ilps28qsw);
-  //  goto exit;
-  //}
-
+  
 	pr_info("Init of the driver is complete\n");
 	goto exit;
 	
