@@ -236,7 +236,7 @@ static int ilps28qsw_probe(struct i2c_client *client){
 	}
 
 	//Populate the rest of the device structure:
-	new_ilps_>write_reg = ilps28qsw_plateform_write;
+	new_ilps->write_reg = ilps28qsw_plateform_write;
 	new_ilps->read_reg = ilps28qsw_plateform_read;
 	new_ilps->mdelay= msleep;
 	new_ilps->handle =  client;
