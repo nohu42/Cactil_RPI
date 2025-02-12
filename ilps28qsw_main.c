@@ -34,7 +34,7 @@ static ssize_t pres_reading_show(struct device *dev, struct device_attribute *at
 	return 0;
 }
 
-static ssize_t pres_reading_store(struct device *dev, struct device_attribute *attr, const *buff, size_t count){
+static ssize_t pres_reading_store(struct device *dev, struct device_attribute *attr, const char *buff, size_t count){
 	
 	pr_info("Writing the attribute\n");
 	return 0;
