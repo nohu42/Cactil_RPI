@@ -25,8 +25,7 @@
 struct ilps28qsw_device{
 	stmdev_ctx_t i2c_handles;
 	struct list_head list_entry;
-  dev_t i_dev;
-  struct cdev c_dev;
+	dev_t i_dev;
 };
 
 /*Global variable for driver:*/ 
@@ -37,7 +36,6 @@ static dev_t dev_first_nb;//First dev number to add from (MINOR/MAJOR on /dev)
 //This structure is only needed because this driver manualy add the device on
 //the i2c bus (adapter).
 static struct i2c_adapter *i2c_adapt_rpi = NULL;
-static struct class *pressure_class = NULL;
 
 
 //Creat List for keeping tracks of devices
@@ -225,9 +223,8 @@ static struct file_operations ilps28qsw_fops = {
 static int ilps28qsw_probe(struct i2c_client *client){
 	
 	int ret = 0;
-  dev_t curr_dev;
-  struct ilps28qsw_device *new_ilps;
-  pr_info("ilps28qsw: Driver probed a new client\n");
+	struct ilps28qsw_device *new_ilps;
+	pr_info("ilps28qsw: Driver probing a new client\n");
 
 
 	/*Variables for register modification*/
@@ -235,54 +232,27 @@ static int ilps28qsw_probe(struct i2c_client *client){
     ilps28qsw_stat_t status;
     ilps28qsw_md_t md;
   
-
     //Check functionnality of the adaptor
 	if(!i2c_check_functionality(client->adapter, I2C_FUNC_SMBUS_I2C_BLOCK))
 		return -EIO;
 	if(!i2c_check_functionality(client->adapter, I2C_FUNC_SMBUS_BYTE_DATA))
 		return -EIO;
-  dev_info(&(client->dev), "The adapteur support the right functions \n" );
+	dev_info(&(client->dev), "The adapteur support the right functions \n" );
   
 	//Read family id; if this fail, it's not the rigtht device
 	ret = i2c_smbus_read_byte_data(client, ILPS28QSW_WHO_AM_I);
 	if (ret != ILPS28QSW_ID)
 		return (ret < 0)? ret : -ENODEV;
-  dev_info(&(client->dev), "Device appears to be supported --> probing \n" );
+	dev_info(&(client->dev), "Device appears to be supported --> probing \n" );
 
-  //Allocate data for the driver:
-  new_ilps = kzalloc(sizeof(*new_ilps), GFP_KERNEL);
-  if(IS_ERR(new_ilps)){
-      pr_err("ilps28qsw: Can't allocate data for device");
-      goto _ilps_device_alloc;
-    }
-
-  //registering the device as a char driver:
-  if(nb_devices_probed >= 255){
-    dev_err(&(client->dev), "To many device probed, try load/unload driver\n");
-    goto _cdev_add;
-  }
-
-  cdev_init(&new_ilps->c_dev, &ilps28qsw_fops);
-  curr_dev = MKDEV(MAJOR(dev_first_nb), MINOR(dev_first_nb)+nb_devices_probed);
-  ret = cdev_add(&new_ilps->c_dev, curr_dev, 1);
-  if (ret < 0){
-    dev_err(&client->dev, "Can't add char device to system, errno: %d\n", ret);
-    goto _cdev_add;
-  }
-  if(IS_ERR(device_create(pressure_class, 
-                      NULL, 
-                      curr_dev,
-                      NULL,
-                      "ilps28qsw%d", nb_devices_probed))){
-    dev_err(&client->dev,"Can't creat char device");
-    goto _device_create;
-  }
-  nb_devices_probed++;
-  
-  dev_info( &(client->dev), "Device added as char device, Major:%d Minor:%d\n", 
-            MAJOR(curr_dev),  
-            MINOR(curr_dev));
-
+	//Allocate data for the driver:
+	new_ilps = kzalloc(sizeof(*new_ilps), GFP_KERNEL);
+	if(IS_ERR(new_ilps)){
+		pr_err("ilps28qsw: Can't allocate data for device");
+		goto _ilps_device_alloc;
+	}
+	
+	nb_devices_probed++;
 
   //Populate the rest of the device structure:
   new_ilps->i2c_handles.write_reg = ilps28qsw_plateform_write;
@@ -298,28 +268,27 @@ static int ilps28qsw_probe(struct i2c_client *client){
   //Pass driver data to the client
   i2c_set_clientdata(client, new_ilps);
 
-  //Init new device
-  /* Restore default configuration */
-  ilps28qsw_init_set(&new_ilps->i2c_handles, ILPS28QSW_RESET);
-  do {///TODO This can block forever, add count down
-    msleep(100);
-    ilps28qsw_status_get(&new_ilps->i2c_handles, &status);
-  } while (status.sw_reset);
-  pr_info("ilps28qsw: Sensor RESET -> OK\n");
+	//Init new device
+	/* Restore default configuration */
+	ilps28qsw_init_set(&new_ilps->i2c_handles, ILPS28QSW_RESET);
+	do {///TODO This can block forever, add count down
+		msleep(100);
+		ilps28qsw_status_get(&new_ilps->i2c_handles, &status);
+	} while (status.sw_reset);
+	pr_info("ilps28qsw: Sensor RESET -> OK\n");
 
-  /* Disable AH/QVAR to save power consumption */
-  ret = ilps28qsw_ah_qvar_en_set(&new_ilps->i2c_handles, 0);
-  if (ret< 0){
-    //printf("QVAR NOT DEACTIVATED: %d - %s\n",ret, strerror(errno));
-    goto _init_fail;
-  }
-  pr_info("ilps28qsw: Qvar Deactivated\n");
+	/* Disable AH/QVAR to save power consumption */
+	ret = ilps28qsw_ah_qvar_en_set(&new_ilps->i2c_handles, 0);
+	if (ret< 0){
+		goto _init_fail;
+	}
+	pr_info("ilps28qsw: Qvar Deactivated\n");
 
 	/* Set bdu and if_inc recommended for driver usage */
 	ret = ilps28qsw_init_set(&new_ilps->i2c_handles, ILPS28QSW_DRV_RDY);
-  if (ret<0){
+	if (ret<0){
 		goto _init_fail;
-  }
+	}
 
 	/* Select bus interface */
 	bus_mode.filter = ILPS28QSW_AUTO;
@@ -343,22 +312,16 @@ static int ilps28qsw_probe(struct i2c_client *client){
   //Error handling 
 _init_fail:
   pr_err("ilps28qsw: device init failed\n");
-  device_destroy(pressure_class, new_ilps->i_dev);
-_device_create:
-  cdev_del(&new_ilps->c_dev);
-_cdev_add: 
 _ilps_device_alloc:
   kfree(new_ilps);
   return ret;
 }
 
 static void ilps28qsw_remove(struct i2c_client *client){
-  struct ilps28qsw_device *ilps = i2c_get_clientdata(client);
-  list_del(&ilps->list_entry);
-  device_destroy(pressure_class, ilps->i_dev);
-  cdev_del(&ilps->c_dev);
+	struct ilps28qsw_device *ilps = i2c_get_clientdata(client);
+	list_del(&ilps->list_entry);
 	kfree(ilps);
-  pr_info("ilps28qsw: Driver removed a client\n");
+	pr_info("ilps28qsw: Driver removed a client\n");
 }
 
 
@@ -388,20 +351,6 @@ static int __init ilps28qsw_init(void){
   int ret;
   static struct i2c_client *i2c_client_ilps28qsw = NULL;
 
-  ret = alloc_chrdev_region(&dev_first_nb, 0, 256, DEVICE_NAME);
-  if (ret < 0){
-    pr_err("Can't allocat device id region\n");
-    goto exit;
-  }
-
-  //Creating a class for the device:
-  pressure_class = class_create("pressure_sensor");
-  if(IS_ERR(pressure_class)){
-    pr_err("Fail creating the class");
-    ret = PTR_ERR(pressure_class);
-    goto class_error;
-  }
-
   ret = i2c_add_driver(&ilps28qsw_i2c_driver);
   if(ret<0){
     pr_err("Fail adding driver on system\n");
@@ -413,9 +362,6 @@ static int __init ilps28qsw_init(void){
 	
 
 _add_driver:
-	class_destroy(pressure_class);
-class_error:
-	unregister_chrdev_region(dev_first_nb, 256);
 exit:
 
 	i2c_put_adapter(i2c_adapt_rpi);
@@ -427,8 +373,6 @@ module_init(ilps28qsw_init);
 static void __exit ilps28qsw_exit(void){
   
 	i2c_del_driver(&ilps28qsw_i2c_driver);
-	class_destroy(pressure_class);
-	unregister_chrdev_region(dev_first_nb, 256);
 	pr_info("exit driver\n");
 }
 module_exit(ilps28qsw_exit);
