@@ -95,7 +95,7 @@ static ssize_t pres_reading_show(struct device *dev, struct device_attribute *at
 	if (ret<0)
 		goto _i2c_fail;
 
-	ret = sprintf(buff,"Presure: %d", (uint32_t)(sensor_data.pressure.raw));
+	ret = sprintf(buff,"Presure: %d\n", (uint32_t)(sensor_data.pressure.raw));
 	return ret;
 
 	_i2c_fail:
@@ -104,11 +104,6 @@ static ssize_t pres_reading_show(struct device *dev, struct device_attribute *at
 	_con_timeout:
 	pr_err("Device took to much time to answer\n");
 	return -EIO;
-
-	//Retrieve the data:
-
-	pr_info("Reading the attribute\n");
-	return 0;
 }
 
 //SysFs Attributes static declaration
