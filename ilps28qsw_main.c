@@ -210,7 +210,7 @@ _ilps_device_alloc:
 static void ilps28qsw_remove(struct i2c_client *client){
 	struct ilps28qsw_device *ilps = i2c_get_clientdata(client);
 	list_del(&ilps->list_entry);
-	device_remove_file(&client->dev, &PRES_READING_ATTR);
+	device_remove_file(&client->dev, &dev_attr_PRES_READING_ATTR);
 	kfree(ilps);
 	pr_info("ilps28qsw: Driver removed a client\n");
 }
