@@ -131,7 +131,7 @@ static int ilps28qsw_probe(struct i2c_client *client){
 	dev_info(&(client->dev), "Device appears to be supported --> probing \n" );
 
 	//Creating device sysfs attributes files:
-	ret = device_create_file(&client->dev, pres_reading);
+	ret = device_create_file(&client->dev, &pres_reading);
 	if(ret < 0){
 		dev_err(&client->dev, "Can't creat device files: %d", ret);
 		return ret; 
@@ -210,7 +210,7 @@ _ilps_device_alloc:
 static void ilps28qsw_remove(struct i2c_client *client){
 	struct ilps28qsw_device *ilps = i2c_get_clientdata(client);
 	list_del(&ilps->list_entry);
-	device_remove_file(&client->dev, pressure_reading);
+	device_remove_file(&client->dev, &press_reading);
 	kfree(ilps);
 	pr_info("ilps28qsw: Driver removed a client\n");
 }
@@ -254,8 +254,6 @@ static int __init ilps28qsw_init(void){
 
 _add_driver:
 exit:
-
-	i2c_put_adapter(i2c_adapt_rpi);
 	return ret;
 
 }
