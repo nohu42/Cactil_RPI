@@ -282,7 +282,7 @@ int ilps28qsw_plateform_write(void *handle,
 	ret = i2c_master_send(c, buf, len+1); 
 	if (ret < 0)
 		dev_err(&c->adapter->dev, "I2C write failed error code: %d\n", -ret);
-	
+	dev_info(&c->adapter->dev, "%d byte writen out of %d\n", ret, len+1);
   kfree(buf);
 	return ret;
 }
