@@ -137,7 +137,7 @@ static ssize_t scale_mode_store(struct device *dev, struct device_attribute *att
 	/*sensor device data*/
 	ssize_t ret;
 	stmdev_ctx_t *ilps;
-	ilps28qsw_ctrl_reg2_t reg;
+	ilps28qsw_md_t md;
 	//Get the device data embedded in the device
 	ilps = dev_get_drvdata(dev);
 	
@@ -149,22 +149,22 @@ static ssize_t scale_mode_store(struct device *dev, struct device_attribute *att
 	if(count != 1)
 		return -EIO;
 	
-	ret = ilps28qsw_read_reg(ilps, ILPS28QSW_CTRL_REG2, (uint8_t*)(&reg), 1);
+	ret = ilps28qsw_mode_get(ilps, &md);
 	if(ret<0){
 		dev_err(dev, "Error communicating with device: %ld\n",ret);
 		return ret;
 	}
 	
 	if(buff[0] != '0'){
-		reg.fs_mode = ILPS28QSW_4060hPa;
+		md.fs = ILPS28QSW_4060hPa;
 		dev_info(dev, "setting mode 4060 --->%d\n", buff[0]);
 	}
 	else{
-		reg.fs_mode = ILPS28QSW_1260hPa;
+		md.fs = ILPS28QSW_1260hPa;
 		dev_info(dev, "setting mode 1260\n");
 
 	}
-	ret = ilps28qsw_write_reg(ilps, ILPS28QSW_CTRL_REG2, (uint8_t*)(&reg), 1);
+	ret = ilps28qsw_mode_set(ilps, &md);
 	if(ret<0)
 		return ret;
 	return count;
@@ -253,11 +253,10 @@ int ilps28qsw_plateform_read( void *handle,
 	msg[1].buf = bufp;
 
 	ret = i2c_transfer(c->adapter, msg, 2);
-	if(ret<0)
+  if(ret<0)
 	  dev_err(&c->adapter->dev, "ilps28qsw: I2C read failed error code: %d\n", 
             -ret);
-	dev_info(&c->adapter->dev, "%d message executed out of 2\n", 
-	ret);
+	
 	return 0;
 }
 
@@ -282,7 +281,7 @@ int ilps28qsw_plateform_write(void *handle,
 	ret = i2c_master_send(c, buf, len+1); 
 	if (ret < 0)
 		dev_err(&c->adapter->dev, "I2C write failed error code: %d\n", -ret);
-	dev_info(&c->adapter->dev, "%d byte writen out of %d\n", ret, len+1);
+	
   kfree(buf);
 	return ret;
 }
