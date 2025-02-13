@@ -67,7 +67,7 @@ static ssize_t temp_reading_show(struct device *dev, struct device_attribute *at
 	if (ret<0)
 		goto _i2c_fail;
 
-	ret = sprintf(buff,"Presure: %d\n", temp_val);
+	ret = sprintf(buff,"Temperature: %d\n", temp_val);
 	return ret;
 
 	_i2c_fail:
@@ -79,7 +79,7 @@ static ssize_t temp_reading_show(struct device *dev, struct device_attribute *at
 }
 
 static ssize_t temp_scale_show(struct device *dev, struct device_attribute *attr, char *buff){
-	sprintf(buff,"%d\n",100); 
+	sprintf(buff,"%Temperature scale: %d\n",100); 
 	return 0;
 }
 static ssize_t pres_scale_show(struct device *dev, struct device_attribute *attr, char *buff){
@@ -107,7 +107,7 @@ static ssize_t pres_scale_show(struct device *dev, struct device_attribute *attr
 		scale = 524288;
 	else
 		scale = 1048576;
-	sprintf(buff,"%d\n", scale);
+	sprintf(buff,"Pressure scale: %d\n", scale);
 	return 0;
 }
 static ssize_t scale_mode_show(struct device *dev, struct device_attribute *attr, char *buff){
@@ -130,7 +130,7 @@ static ssize_t scale_mode_show(struct device *dev, struct device_attribute *attr
 		return ret;
 	}
 	
-	sprintf(buff,"%d", md.fs);
+	sprintf(buff,"%d\n", md.fs);
 	return 0;
 }
 static ssize_t scale_mode_store(struct device *dev, struct device_attribute *attr, const char *buff, size_t count){
