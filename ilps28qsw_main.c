@@ -149,7 +149,7 @@ static ssize_t scale_mode_store(struct device *dev, struct device_attribute *att
 	if(count != 1)
 		return -EIO;
 	
-	ret = ilps28qsw_read_reg(ilps, ILPS28QSW_CTRL_REG2, &reg, 1);
+	ret = ilps28qsw_read_reg(ilps, ILPS28QSW_CTRL_REG2, (uint8_t*)(&reg), 1);
 	if(ret<0){
 		dev_err(dev, "Error communicating with device: %ld\n",ret);
 		return ret;
@@ -164,7 +164,7 @@ static ssize_t scale_mode_store(struct device *dev, struct device_attribute *att
 		dev_info(dev, "setting mode 1260\n");
 
 	}
-	ret = ilps28qsw_write_reg(ilps, ILPS28QSW_CTRL_REG2, &reg, 1);
+	ret = ilps28qsw_write_reg(ilps, ILPS28QSW_CTRL_REG2, (uint8_t*)(&reg), 1);
 	if(ret<0)
 		return ret;
 	return count;
