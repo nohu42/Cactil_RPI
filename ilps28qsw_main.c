@@ -79,7 +79,7 @@ static ssize_t temp_reading_show(struct device *dev, struct device_attribute *at
 }
 
 static ssize_t temp_scale_show(struct device *dev, struct device_attribute *attr, char *buff){
-	return sprintf(buff,"%Temperature scale: %d\n",100);
+	return sprintf(buff,"Temperature scale: %d\n",100);
 }
 static ssize_t pres_scale_show(struct device *dev, struct device_attribute *attr, char *buff){
 	
