@@ -285,34 +285,34 @@ static int ilps28qsw_probe(struct i2c_client *client){
 	//Creating device sysfs attributes files:
 	ret = device_create_file(&client->dev, &dev_attr_pres_reading);
 	if(ret < 0){
-		dev_err(&client->dev, "Can't creat device files: %d", ret);
+		dev_err(&client->dev, "Can't creat device files: %d\n", ret);
 		return ret; 
 	}
 	//Creating device sysfs attributes files:
 	ret = device_create_file(&client->dev, &dev_attr_temp_reading);
 	if(ret < 0){
-		dev_err(&client->dev, "Can't creat device files: %d", ret);
+		dev_err(&client->dev, "Can't creat device files: %d\n", ret);
 		return ret; 
 	}	//Creating device sysfs attributes files:
 	ret = device_create_file(&client->dev, &dev_attr_scale_mode);
 	if(ret < 0){
-		dev_err(&client->dev, "Can't creat device files: %d", ret);
+		dev_err(&client->dev, "Can't creat device files: %d\n", ret);
 		return ret; 
 	}	//Creating device sysfs attributes files:
 	ret = device_create_file(&client->dev, &dev_attr_temp_scale);
 	if(ret < 0){
-		dev_err(&client->dev, "Can't creat device files: %d", ret);
+		dev_err(&client->dev, "Can't creat device files: %d\n", ret);
 		return ret; 
 	}	//Creating device sysfs attributes files:
 	ret = device_create_file(&client->dev, &dev_attr_pres_scale);
 	if(ret < 0){
-		dev_err(&client->dev, "Can't creat device files: %d", ret);
+		dev_err(&client->dev, "Can't creat device files: %d\n", ret);
 		return ret; 
 	}	
 	//Allocate data for the driver:
 	new_ilps = kzalloc(sizeof(stmdev_ctx_t), GFP_KERNEL);
 	if(IS_ERR(new_ilps)){
-		pr_err("ilps28qsw: Can't allocate data for device");
+		pr_err("ilps28qsw: Can't allocate data for device\n");
 		goto _ilps_device_alloc;
 	}
 
