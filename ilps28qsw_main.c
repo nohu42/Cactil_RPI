@@ -253,10 +253,11 @@ int ilps28qsw_plateform_read( void *handle,
 	msg[1].buf = bufp;
 
 	ret = i2c_transfer(c->adapter, msg, 2);
-  if(ret<0)
+	if(ret<0)
 	  dev_err(&c->adapter->dev, "ilps28qsw: I2C read failed error code: %d\n", 
             -ret);
-	
+	dev_info(&c->adapter->dev, "%d message executed out of 2\n", 
+	ret);
 	return ret;
 }
 
