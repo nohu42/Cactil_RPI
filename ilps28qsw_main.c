@@ -137,7 +137,7 @@ static ssize_t scale_mode_store(struct device *dev, struct device_attribute *att
 	/*sensor device data*/
 	ssize_t ret;
 	stmdev_ctx_t *ilps;
-	ilps28qsw_md_t md;
+	ilps28qsw_ctrl_reg2_t reg
 	//Get the device data embedded in the device
 	ilps = dev_get_drvdata(dev);
 	
@@ -149,22 +149,22 @@ static ssize_t scale_mode_store(struct device *dev, struct device_attribute *att
 	if(count != 1)
 		return -EIO;
 	
-	ret = ilps28qsw_mode_get(ilps, &md);
+	ret = ilps28qsw_read_reg(ilps, ILPS28QSW_CTRL_REG2, &reg, 1);
 	if(ret<0){
 		dev_err(dev, "Error communicating with device: %ld\n",ret);
 		return ret;
 	}
 	
 	if(buff[0] != '0'){
-		md.fs = ILPS28QSW_4060hPa;
+		reg.fs_mode = ILPS28QSW_4060hPa;
 		dev_info(dev, "setting mode 4060 --->%d\n", buff[0]);
 	}
 	else{
-		md.fs = ILPS28QSW_1260hPa;
+		reg.fs_mode = ILPS28QSW_1260hPa;
 		dev_info(dev, "setting mode 1260\n");
 
 	}
-	ret = ilps28qsw_mode_set(ilps, &md);
+	ret = ilps28qsw_write_reg(ilps, ILPS28QSW_CTRL_REG2, &reg, 1);
 	if(ret<0)
 		return ret;
 	return count;
