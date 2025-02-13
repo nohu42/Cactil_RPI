@@ -810,8 +810,6 @@ int32_t ilps28qsw_ah_qvar_data_get(const stmdev_ctx_t *ctx,
   return ret;
 }
 
-int ilps28qsw
-
 /**
   * @}
   *
