@@ -79,8 +79,7 @@ static ssize_t temp_reading_show(struct device *dev, struct device_attribute *at
 }
 
 static ssize_t temp_scale_show(struct device *dev, struct device_attribute *attr, char *buff){
-	sprintf(buff,"%Temperature scale: %d\n",100); 
-	return 0;
+	return sprintf(buff,"%Temperature scale: %d\n",100);
 }
 static ssize_t pres_scale_show(struct device *dev, struct device_attribute *attr, char *buff){
 	
@@ -107,8 +106,8 @@ static ssize_t pres_scale_show(struct device *dev, struct device_attribute *attr
 		scale = 524288;
 	else
 		scale = 1048576;
-	sprintf(buff,"Pressure scale: %d\n", scale);
-	return 0;
+	ret = sprintf(buff,"Pressure scale: %d\n", scale);
+	return ret;
 }
 static ssize_t scale_mode_show(struct device *dev, struct device_attribute *attr, char *buff){
 	
@@ -130,8 +129,8 @@ static ssize_t scale_mode_show(struct device *dev, struct device_attribute *attr
 		return ret;
 	}
 	
-	sprintf(buff,"%d\n", md.fs);
-	return 0;
+	ret = sprintf(buff,"%d\n", md.fs);
+	return ret;
 }
 static ssize_t scale_mode_store(struct device *dev, struct device_attribute *attr, const char *buff, size_t count){
 	
