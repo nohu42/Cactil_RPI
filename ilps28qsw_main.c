@@ -99,7 +99,7 @@ static ssize_t pres_scale_show(struct device *dev, struct device_attribute *attr
 	
 	ret = ilps28qsw_mode_get(ilps, &md);
 	if(ret<0){
-		dev_err(dev, "Error communicating with device: %d\n",ret);
+		dev_err(dev, "Error communicating with device: %ld\n",ret);
 		return ret;
 	}
 	
@@ -126,7 +126,7 @@ static ssize_t scale_mode_show(struct device *dev, struct device_attribute *attr
 	
 	ret = ilps28qsw_mode_get(ilps, &md);
 	if(ret<0){
-		dev_err(dev, "Error communicating with device: %d\n",ret);
+		dev_err(dev, "Error communicating with device: %ld\n",ret);
 		return ret;
 	}
 	
