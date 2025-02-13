@@ -810,6 +810,8 @@ int32_t ilps28qsw_ah_qvar_data_get(const stmdev_ctx_t *ctx,
   return ret;
 }
 
+int ilps28qsw
+
 /**
   * @}
   *
@@ -1266,8 +1268,33 @@ int32_t ilps28qsw_opc_get(const stmdev_ctx_t *ctx, int16_t *val)
 
   return ret;
 }
+/**
+  * @brief  Permet de lancer un trigger logiciel si le capteur est configurer en OneShot
+  *
+  * @param  ilps   communication interface handler.(ptr)
+  * @retval       interface status (MANDATORY: return 0 -> no Error)
+  *
+  */
+int32_t ilps28qsw_softtrig(const stmdev_ctx_t *ilps){
+	
+	int32_t ret = 0;
+	ilps28qsw_ctrl_reg2_t ctrl_reg2;//Demandé une nouvelle data (soft trigger)
+	ilps28qsw_md_t md;
+	
+	ret = ilps28qsw_mode_get(ilps, &md);
+	if (ret<0)
+		return ret;
+	
+	if(md.odr != ILPS28QSW_ONE_SHOT)
+		return -1;
 
-
+	ret = ilps28qsw_read_reg(ilps, ILPS28QSW_CTRL_REG2, (uint8_t *)&ctrl_reg2,1);
+	if(ret<0)
+		return ret;
+	ctrl_reg2.oneshot = 1; //Oneshot trigger
+	ret = ilps28qsw_write_reg(ilps, ILPS28QSW_CTRL_REG2, (uint8_t *)&ctrl_reg2, 1);
+	return ret;
+}
 /**
   * @}
   *

@@ -709,6 +709,8 @@ int32_t ilps28qsw_refp_get(const stmdev_ctx_t *ctx, int16_t *val);
 int32_t ilps28qsw_opc_set(const stmdev_ctx_t *ctx, int16_t val);
 int32_t ilps28qsw_opc_get(const stmdev_ctx_t *ctx, int16_t *val);
 
+int32_t ilps28qsw_softtrig(const stmdev_ctx_t *ilps);
+
 /**
   *@}
   *

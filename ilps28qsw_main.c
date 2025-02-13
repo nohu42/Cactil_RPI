@@ -26,18 +26,113 @@
 stmdev_ctx_t i2c_handles;
 
 static ssize_t temp_reading_show(struct device *dev, struct device_attribute *attr, char *buff){
-	return 0;
+	
+		
+	ssize_t ret;//Variable pour return
+	int nb_try = ILPS28QSW_NB_TRY;
+	
+	/*Variable registre pour la demande et la récupération de la data*/
+	ilps28qsw_all_sources_t all_sources;//Savoir si la data est disponible
+	int16_t temp_val;
+	/*sensor device data*/
+	stmdev_ctx_t *ilps;
+
+	//Get the device data embedded in the device
+	ilps = dev_get_drvdata(dev);
+	
+	if(dev == NULL){
+		dev_err(dev, "Something went wrong...");
+		return -EIO;
+	}
+	
+	//Trig the measurement
+	ret = ilps_softtrig(ilps);
+	if(ret < 0){
+		goto _i2c_fail;
+	}
+	//Wait for data to be setup
+	memset(&all_sources, 0, sizeof(ilps28qsw_all_sources_t));
+	while (nb_try > 0 && !(all_sources.drdy_temp)){
+		ret = ilps28qsw_all_sources_get(ilps, &all_sources);
+		if (ret < 0)
+		  goto _i2c_fail;
+		msleep(ILPS28QSW_SLEEP_TIMEOUT);
+		nb_try--;
+	}
+
+	if(!nb_try)
+		goto _con_timeout;
+
+	ret = ilps28qsw_temperature_raw_get(ilps, &temp_val)
+	if (ret<0)
+		goto _i2c_fail;
+
+	ret = sprintf(buff,"Presure: %d\n", temp_val);
+	return ret;
+
+	_i2c_fail:
+	pr_err( "Error communicating with device: %ld\n", ret);
+	return ret;
+	_con_timeout:
+	pr_err("Device took to much time to answer\n");
+	return -EIO;
 }
+
 static ssize_t temp_scale_show(struct device *dev, struct device_attribute *attr, char *buff){
+	sprintf(buff,"%d\n",100); 
 	return 0;
 }
 static ssize_t pres_scale_show(struct device *dev, struct device_attribute *attr, char *buff){
+	
+	/*sensor device data*/
+	stmdev_ctx_t *ilps;
+	ilps28qsw_md_t md;
+	uint32_t scale;
+	//Get the device data embedded in the device
+	ilps = dev_get_drvdata(dev);
+	
+	if(dev == NULL){
+		dev_err(dev, "Something went wrong...");
+		return -EIO;
+	}
+	
+	ret = ilps28qsw_mode_get(ilps, &md);
+	if(ret<0){
+		dev_err(dev, "Error communicating with device: %d\n",ret);
+		return ret;
+	}
+	
+	if(md.fs)
+		scale = 524288;
+	else
+		scale = 1048576;
+	sprintf(buff,"%d\n", scale);
 	return 0;
 }
 static ssize_t scale_mode_show(struct device *dev, struct device_attribute *attr, char *buff){
+	
+	/*sensor device data*/
+	stmdev_ctx_t *ilps;
+	ilps28qsw_md_t md;
+	//Get the device data embedded in the device
+	ilps = dev_get_drvdata(dev);
+	
+	if(dev == NULL){
+		dev_err(dev, "Something went wrong...");
+		return -EIO;
+	}
+	
+	ret = ilps28qsw_mode_get(ilps, &md);
+	if(ret<0){
+		dev_err(dev, "Error communicating with device: %d\n",ret);
+		return ret;
+	}
+	
+	sprintf(buff,"%d", md.fs);
 	return 0;
 }
 static ssize_t scale_mode_store(struct device *dev, struct device_attribute *attr, const char *buff, size_t count){
+	
 	return count;
 }
 
@@ -49,11 +144,8 @@ static ssize_t pres_reading_show(struct device *dev, struct device_attribute *at
 	int nb_try = ILPS28QSW_NB_TRY;
 	
 	/*Variable registre pour la demande et la récupération de la data*/
-	ilps28qsw_ctrl_reg2_t ctrl_reg2;//Demandé une nouvelle data (soft trigger)
 	ilps28qsw_all_sources_t all_sources;//Savoir si la data est disponible
-	ilps28qsw_data_t sensor_data;//Récupérer la data
-	ilps28qsw_md_t md;
-	
+	uint32_t press_val;
 	/*sensor device data*/
 	stmdev_ctx_t *ilps;
 
@@ -64,21 +156,13 @@ static ssize_t pres_reading_show(struct device *dev, struct device_attribute *at
 		dev_err(dev, "Something went wrong...");
 		return -EIO;
 	}
-	/*Reading sensor value*/
-	ret = ilps28qsw_mode_get(ilps, &md);
-	ret = ilps28qsw_read_reg(ilps, ILPS28QSW_CTRL_REG2, (uint8_t *)&ctrl_reg2,1);
+	
+	//Trig the measurement
+	ret = ilps_softtrig(ilps);
 	if(ret < 0){
 		goto _i2c_fail;
 	}
-
-	ctrl_reg2.oneshot = 1; //Oneshot trigger
-	ilps28qsw_write_reg(ilps, ILPS28QSW_CTRL_REG2,
-	  (uint8_t *)&ctrl_reg2, 1);
-	if(ret < 0){
-		goto _i2c_fail;
-	}
-
-
+	//Wait for data to be setup
 	memset(&all_sources, 0, sizeof(ilps28qsw_all_sources_t));
 	while (nb_try > 0 && !(all_sources.drdy_pres)){
 		ret = ilps28qsw_all_sources_get(ilps, &all_sources);
@@ -91,11 +175,11 @@ static ssize_t pres_reading_show(struct device *dev, struct device_attribute *at
 	if(!nb_try)
 		goto _con_timeout;
 
-	ret = ilps28qsw_data_get(ilps, &md, &sensor_data);
+	ret = ilps28qsw_pressure_raw_get(ilps, &press_val)
 	if (ret<0)
 		goto _i2c_fail;
 
-	ret = sprintf(buff,"Presure: %d\n", (uint32_t)(sensor_data.pressure.raw));
+	ret = sprintf(buff,"Presure: %d\n", press_val);
 	return ret;
 
 	_i2c_fail:
