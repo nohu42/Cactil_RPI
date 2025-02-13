@@ -156,9 +156,9 @@ static ssize_t scale_mode_store(struct device *dev, struct device_attribute *att
 	}
 	
 	if(buff[0] != '0')
-		md.fs = ILPS28QSW_1260hPa;
-	else
 		md.fs = ILPS28QSW_4060hPa;
+	else
+		md.fs = ILPS28QSW_1260hPa;
 	
 	ret = ilps28qsw_mode_set(ilps, &md);
 	if(ret<0)
