@@ -258,7 +258,7 @@ int ilps28qsw_plateform_read( void *handle,
             -ret);
 	dev_info(&c->adapter->dev, "%d message executed out of 2\n", 
 	ret);
-	return ret;
+	return 0;
 }
 
 //plateform write (used by µC driver)
