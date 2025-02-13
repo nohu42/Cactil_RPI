@@ -134,6 +134,35 @@ static ssize_t scale_mode_show(struct device *dev, struct device_attribute *attr
 }
 static ssize_t scale_mode_store(struct device *dev, struct device_attribute *attr, const char *buff, size_t count){
 	
+	/*sensor device data*/
+	ssize_t ret;
+	stmdev_ctx_t *ilps;
+	ilps28qsw_md_t md;
+	//Get the device data embedded in the device
+	ilps = dev_get_drvdata(dev);
+	
+	if(dev == NULL){
+		dev_err(dev, "Something went wrong...");
+		return -EIO;
+	}
+	
+	if(count != 1)
+		return -EIO;
+	
+	ret = ilps28qsw_mode_get(ilps, &md);
+	if(ret<0){
+		dev_err(dev, "Error communicating with device: %ld\n",ret);
+		return ret;
+	}
+	
+	if(buff[0] != '0')
+		md.fs = ILPS28QSW_1260hPa;
+	else
+		md.fs = ILPS28QSW_4060hPa;
+	
+	ret = ilps28qsw_mode_set(new_ilps, &md);
+	if(ret<0)
+		return ret;
 	return count;
 }
 
