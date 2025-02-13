@@ -137,7 +137,7 @@ static ssize_t scale_mode_store(struct device *dev, struct device_attribute *att
 	/*sensor device data*/
 	ssize_t ret;
 	stmdev_ctx_t *ilps;
-	ilps28qsw_ctrl_reg2_t reg
+	ilps28qsw_ctrl_reg2_t reg;
 	//Get the device data embedded in the device
 	ilps = dev_get_drvdata(dev);
 	
