@@ -46,7 +46,7 @@ static ssize_t temp_reading_show(struct device *dev, struct device_attribute *at
 	}
 	
 	//Trig the measurement
-	ret = ilps_softtrig(ilps);
+	ret = ilps28qsw_softtrig(ilps);
 	if(ret < 0){
 		goto _i2c_fail;
 	}
@@ -63,7 +63,7 @@ static ssize_t temp_reading_show(struct device *dev, struct device_attribute *at
 	if(!nb_try)
 		goto _con_timeout;
 
-	ret = ilps28qsw_temperature_raw_get(ilps, &temp_val)
+	ret = ilps28qsw_temperature_raw_get(ilps, &temp_val);
 	if (ret<0)
 		goto _i2c_fail;
 
@@ -88,6 +88,7 @@ static ssize_t pres_scale_show(struct device *dev, struct device_attribute *attr
 	stmdev_ctx_t *ilps;
 	ilps28qsw_md_t md;
 	uint32_t scale;
+	ssize_t ret;
 	//Get the device data embedded in the device
 	ilps = dev_get_drvdata(dev);
 	
@@ -112,6 +113,7 @@ static ssize_t pres_scale_show(struct device *dev, struct device_attribute *attr
 static ssize_t scale_mode_show(struct device *dev, struct device_attribute *attr, char *buff){
 	
 	/*sensor device data*/
+	ssize_t ret;
 	stmdev_ctx_t *ilps;
 	ilps28qsw_md_t md;
 	//Get the device data embedded in the device
@@ -158,7 +160,7 @@ static ssize_t pres_reading_show(struct device *dev, struct device_attribute *at
 	}
 	
 	//Trig the measurement
-	ret = ilps_softtrig(ilps);
+	ret = ilps28qsw_softtrig(ilps);
 	if(ret < 0){
 		goto _i2c_fail;
 	}
@@ -175,7 +177,7 @@ static ssize_t pres_reading_show(struct device *dev, struct device_attribute *at
 	if(!nb_try)
 		goto _con_timeout;
 
-	ret = ilps28qsw_pressure_raw_get(ilps, &press_val)
+	ret = ilps28qsw_pressure_raw_get(ilps, &press_val);
 	if (ret<0)
 		goto _i2c_fail;
 
