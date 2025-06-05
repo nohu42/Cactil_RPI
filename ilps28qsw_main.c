@@ -146,8 +146,10 @@ static ssize_t scale_mode_store(struct device *dev, struct device_attribute *att
 		return -EIO;
 	}
 	
-	if(count != 1)
+	if(count != 1){
+		dev_err(dev, "we received %d char, that's more than exepected (%s)\n", count, buff);
 		return -EIO;
+	}
 	
 	ret = ilps28qsw_mode_get(ilps, &md);
 	if(ret<0){
