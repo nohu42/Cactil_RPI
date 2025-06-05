@@ -147,7 +147,7 @@ static ssize_t scale_mode_store(struct device *dev, struct device_attribute *att
 	}
 	
 	if(count != 1){
-		dev_err(dev, "we received %d char, that's more than exepected (%s)\n", count, buff);
+		dev_err(dev, "we received %ld char, that's more than exepected (%s)\n", count, buff);
 		return -EIO;
 	}
 	
@@ -157,7 +157,7 @@ static ssize_t scale_mode_store(struct device *dev, struct device_attribute *att
 		return ret;
 	}
 	
-	if(buff[0] != '0'){
+	if(buff[0] == 1){
 		md.fs = ILPS28QSW_4060hPa;
 		dev_info(dev, "setting mode 4060 --->%d\n", buff[0]);
 	}
@@ -167,8 +167,9 @@ static ssize_t scale_mode_store(struct device *dev, struct device_attribute *att
 
 	}
 	ret = ilps28qsw_mode_set(ilps, &md);
-	if(ret<0)
+	if(ret<0){
 		return ret;
+	}
 	return count;
 }
 
