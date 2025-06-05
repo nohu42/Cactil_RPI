@@ -25,8 +25,8 @@
 
 stmdev_ctx_t i2c_handles;
 
-int ilps28qsw_plateform_write(void *handle, uint8_t reg,const uint8_t *bufp, uint16_t len);
 int ilps28qsw_plateform_write(void *handle,uint8_t reg,const uint8_t *bufp,uint16_t len);
+int ilps28qsw_plateform_read( void *handle, uint8_t reg, uint8_t *bufp, uint16_t len);
 static ssize_t temp_reading_show(struct device *dev, struct device_attribute *attr, char *buff){
 	
 		
@@ -159,7 +159,7 @@ static ssize_t scale_mode_store(struct device *dev, struct device_attribute *att
 		return ret;
 	}
 	
-	if(buff[0] == '1'){
+	if(buff[0] == 'A'){
 		md.fs = ILPS28QSW_4060hPa;
 		dev_info(dev, "setting mode 4060 --->%d\n", buff[0]);
 	}
